@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Secrets / local config
+config_local.yaml
+client_secret.json
+token.json
+
+# Generated data
+rag_index/
+.agent_memory/
+spotify_transcript.txt
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
