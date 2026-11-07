@@ -1,0 +1,63 @@
+runtime:
+  action: discover
+  limit: null
+  wait_for_manual_login: true
+
+spotify:
+  show_url: https://open.spotify.com/show/4XbxH1fXdmJrlrZ0q78kEt
+  episode_url: https://open.spotify.com/episode/5OaOno7pKlfeZeZF4sLU4D
+
+browser:
+  channel: chrome
+  headless: false
+  slow_mo: 100
+  start_maximized: true
+  viewport:
+    width: 1600
+    height: 1000
+
+paths:
+  summary_csv: transcripts/show/episodes_summary.csv
+  transcripts_dir: transcripts/show
+  single_episode_output: spotify_transcript.txt
+
+openai:
+  api_key: your-openai-api-key
+  model: gpt-4o-mini
+  question: What are the main action items from this episode?
+
+rag:
+  embedding_provider: openai
+  openai_embedding_model: text-embedding-3-small
+  local_embedding_model: sentence-transformers/all-MiniLM-L6-v2
+  chunk_size_tokens: 800
+  chunk_overlap_tokens: 200
+  token_encoding: cl100k_base
+  top_k_retrieval: 5
+  qa_model: gpt-4o-mini
+  qa_temperature: 0.2
+  faiss_index_path: rag_index/podcast_index.faiss
+  metadata_path: rag_index/podcast_metadata.json
+
+numbering:
+  synthetic_episode_base: 900000
+
+csv:
+  fieldnames:
+    - episode_number
+    - link
+    - episode_name
+    - status
+    - transcript_path
+    - ai_answer
+
+status_values:
+  not_started: Not started
+  transcript_downloaded: Transcript downloaded
+  transcript_not_found: Transcript not found
+  transcript_empty: Transcript empty
+  transcript_failed: Transcript failed
+  transcript_skipped: Transcript skipped
+  ai_done: AI done
+  ai_failed: AI failed
+  ai_skipped: AI skipped
