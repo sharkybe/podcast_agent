@@ -10,6 +10,9 @@ config_local.yaml
 client_secret.json
 token.json
 
+# Browser profile holds the Spotify login session
+.browser_profile/
+
 # Generated data
 rag_index/
 .agent_memory/
@@ -18,4 +21,9 @@ spotify_transcript.txt
 # OS / editor
 .DS_Store
 .idea/
-.vscode/
+.vscode/*
+!.vscode/launch.json
+
+# Per-show outputs (keep the folder)
+artifacts/*
+!artifacts/.gitkeep

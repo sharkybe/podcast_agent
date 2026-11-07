@@ -1,0 +1,24 @@
+# Single config for the podcast skill. One section per step.
+
+paths:
+  artifacts_dir: artifacts          # per-show outputs go to artifacts/<show-slug>/
+
+discover:                           # step 1
+  search_country: US                # iTunes Search storefront
+  max_candidates: 5
+  match_spotify_episodes: true      # scrape the Spotify show page and link episodes by title/number
+
+transcribe:                         # step 2
+  providers: [spotify]              # tried in order; more can be added later
+  retry_unavailable: false          # re-try episodes already marked "unavailable"
+  limit: null                       # max episodes per run (null = all)
+
+browser:                            # Playwright (Spotify)
+  user_data_dir: .browser_profile   # persistent profile: log in to Spotify once, stays logged in
+  channel: chrome
+  headless: false
+  slow_mo: 100
+  start_maximized: true
+  viewport:
+    width: 1600
+    height: 1000

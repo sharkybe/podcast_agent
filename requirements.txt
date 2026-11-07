@@ -1,6 +1,8 @@
+PyYAML>=6.0.2
+playwright>=1.53.0
+
+# step 3 / 4 (RAG) - not used by steps 1-2 yet
 openai>=1.44.0
 faiss-cpu>=1.8.0
 numpy>=1.26.0
 tiktoken>=0.7.0
-PyYAML>=6.0.2
-playwright>=1.53.0

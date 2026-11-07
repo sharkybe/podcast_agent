@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:podcast="https://podcastindex.org/namespace/1.0">
+  <channel>
+    <title>הפודקאסט לדוגמה</title>
+    <itunes:author>Test Author</itunes:author>
+    <description>A show</description>
+    <item>
+      <title>פרק 3 - הורות</title>
+      <pubDate>Wed, 03 Jan 2024 08:00:00 GMT</pubDate>
+      <itunes:duration>01:02:03</itunes:duration>
+      <enclosure url="https://cdn.example/3.mp3" type="audio/mpeg"/>
+      <podcast:transcript url="https://cdn.example/3.srt" type="application/srt"/>
+    </item>
+    <item>
+      <title>Episode 2: Money</title>
+      <pubDate>Wed, 02 Jan 2024 08:00:00 GMT</pubDate>
+      <itunes:episode>2</itunes:episode>
+      <enclosure url="https://cdn.example/2.mp3" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Welcome</title>
+      <pubDate>Tue, 01 Jan 2024 08:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.example/1.mp3" type="audio/mpeg"/>
+    </item>
+  </channel>
+</rss>

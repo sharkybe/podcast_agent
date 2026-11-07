@@ -1,0 +1,5 @@
+{"resultCount": 3, "results": [
+  {"collectionName": "Show A", "artistName": "Alice", "feedUrl": "https://a.example/rss", "trackCount": 120},
+  {"collectionName": "Show B", "artistName": "Bob"},
+  {"collectionName": "Show C", "artistName": "Carol", "feedUrl": "https://c.example/rss", "trackCount": 5}
+]}

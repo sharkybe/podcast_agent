@@ -1,0 +1,78 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Step 1: discover (RSS only, no browser)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "podcast_skill",
+      "args": ["discover", "${input:showQuery}", "--no-spotify"],
+      "cwd": "${workspaceFolder}",
+      "env": { "PYTHONPATH": "${workspaceFolder}/src" },
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Step 1: discover + Spotify linking (browser)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "podcast_skill",
+      "args": ["discover", "${input:showQuery}"],
+      "cwd": "${workspaceFolder}",
+      "env": { "PYTHONPATH": "${workspaceFolder}/src" },
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Step 2: transcribe (limit 2)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "podcast_skill",
+      "args": ["transcribe", "--limit", "1"],
+      // "--limit", "2"],
+      "cwd": "${workspaceFolder}",
+      "env": { "PYTHONPATH": "${workspaceFolder}/src" },
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Step 2: transcribe (retry unavailable)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "podcast_skill",
+      "args": ["transcribe", "--limit", "${input:transcribeLimit}", "--retry-unavailable"],
+      "cwd": "${workspaceFolder}",
+      "env": { "PYTHONPATH": "${workspaceFolder}/src" },
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Tests: all (offline)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["-v"],
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ],
+  "inputs": [
+    {
+      "id": "showQuery",
+      "type": "promptString",
+      "description": "Podcast name or Spotify show link"
+    },
+    {
+      "id": "transcribeLimit",
+      "type": "promptString",
+      "description": "Max episodes to transcribe this run",
+      "default": "2"
+    }
+  ]
+}
