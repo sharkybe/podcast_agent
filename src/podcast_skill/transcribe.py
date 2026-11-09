@@ -14,14 +14,22 @@ from podcast_skill.paths import ShowPaths
 from podcast_skill.providers import TranscriptProvider
 
 
-def build_providers(config: dict[str, Any], paths: ShowPaths | None = None) -> list[TranscriptProvider]:
-    names = section(config, "transcribe").get("providers") or ["spotify"]
+def build_providers(
+    config: dict[str, Any],
+    paths: ShowPaths | None = None,
+    names: Sequence[str] | None = None,
+) -> list[TranscriptProvider]:
+    names = names or section(config, "transcribe").get("providers") or ["spotify"]
     providers: list[TranscriptProvider] = []
     for name in names:
         if name == "spotify":
             from podcast_skill.providers.spotify import SpotifyTranscriptProvider
 
             providers.append(SpotifyTranscriptProvider(config, debug_dir=paths.debug_dir if paths else None))
+        elif name == "ivrit":
+            from podcast_skill.providers.ivrit import IvritTranscriptProvider
+
+            providers.append(IvritTranscriptProvider(config, audio_dir=paths.audio_dir if paths else None))
         else:
             raise ValueError(f"Unknown transcript provider: {name}")
     return providers
@@ -50,6 +58,7 @@ def transcribe(
     retry_unavailable: bool | None = None,
     limit: int | None = None,
     only_ids: Sequence[int] | None = None,
+    provider_names: Sequence[str] | None = None,
 ) -> dict[str, int]:
     cfg = section(config, "transcribe")
     if retry_unavailable is None:
@@ -66,7 +75,7 @@ def transcribe(
         print("Nothing to do: every episode is done or unavailable.")
         return counts
 
-    providers = list(providers) if providers is not None else build_providers(config, paths)
+    providers = list(providers) if providers is not None else build_providers(config, paths, provider_names)
     paths.transcripts_dir.mkdir(parents=True, exist_ok=True)
 
     opened: list[TranscriptProvider] = []

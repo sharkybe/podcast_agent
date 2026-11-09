@@ -1,8 +1,10 @@
 PyYAML>=6.0.2
 playwright>=1.53.0
 
-# step 3 / 4 (RAG) - not used by steps 1-2 yet
+# Hebrew display in terminals without right-to-left support (<0.5: pure Python and mirrors brackets)
+python-bidi>=0.4.2,<0.5
+
+# step 3 (index): embeddings + exact vector search
 openai>=1.44.0
-faiss-cpu>=1.8.0
 numpy>=1.26.0
 tiktoken>=0.7.0

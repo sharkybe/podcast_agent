@@ -31,6 +31,14 @@ class ShowPaths:
         self.episodes_csv = self.root / "episodes.csv"
         self.transcripts_dir = self.root / "transcripts"
         self.debug_dir = self.root / "debug"   # screenshots/HTML when a transcript is not found
+        self.audio_dir = self.root / "audio"   # downloaded episode audio, only if transcribe.ivrit.keep_audio
+        self.index_dir = self.root / "index"  # one SQLite file per embedding model
+        self.reports_dir = self.root / "reports"   # HTML search reports
 
     def transcript_file(self, episode_id: int) -> Path:
         return self.transcripts_dir / f"{episode_id:03d}.txt"
+
+    def index_file(self, model: str, dimensions: int | None = None) -> Path:
+        """Separate file per model (and size), so testing another model never touches this one."""
+        suffix = f"-{dimensions}d" if dimensions else ""
+        return self.index_dir / f"{model}{suffix}.db"

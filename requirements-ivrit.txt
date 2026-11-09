@@ -1,0 +1,2 @@
+# optional: local Hebrew transcription (transcribe provider "ivrit")
+faster-whisper>=1.0.3

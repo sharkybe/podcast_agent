@@ -9,9 +9,29 @@ discover:                           # step 1
   match_spotify_episodes: true      # scrape the Spotify show page and link episodes by title/number
 
 transcribe:                         # step 2
-  providers: [spotify]              # tried in order; more can be added later
+  providers: [spotify, ivrit]       # tried in order: ivrit (local Whisper) only runs for episodes Spotify has no transcript for
   retry_unavailable: false          # re-try episodes already marked "unavailable"
   limit: null                       # max episodes per run (null = all)
+  ivrit:                            # local transcription; needs `pip install -r requirements-ivrit.txt`
+    model: ivrit-ai/whisper-large-v3-turbo-ct2   # downloaded from Hugging Face on first use (~1.5 GB)
+    device: auto                    # faster-whisper has no Apple GPU support: runs on the CPU on a Mac
+    compute_type: int8
+    language: he
+    beam_size: 5
+    keep_audio: false               # true = keep the MP3 in artifacts/<show>/audio/
+
+index:                              # step 3 (needs the OpenAI key in the environment)
+  embedding_model: text-embedding-3-large   # text-embedding-3-small: cheaper, for testing
+  dimensions: null                  # null = native size (3072 large / 1536 small); e.g. 1024 to shrink the index
+  api_key_env: OPEN_AI_API_KEY      # variable holding the key: set in the environment or in .env (gitignored)
+  chunk_tokens: 400                 # target chunk size, built from whole speaker turns
+  overlap_tokens: 80                # tail of the previous chunk repeated at the start of the next
+  batch_size: 96                    # texts per embeddings request
+  top_chunks: 30                    # passages retrieved per search, then grouped by episode
+  min_score: null                   # drop weaker passages (cosine similarity); null = keep all
+
+display:
+  fix_rtl: true                     # reorder Hebrew for terminals without right-to-left support (VS Code); terminal only, never JSON/files
 
 browser:                            # Playwright (Spotify)
   user_data_dir: .browser_profile   # persistent profile: log in to Spotify once, stays logged in

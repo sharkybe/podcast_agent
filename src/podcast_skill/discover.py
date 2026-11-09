@@ -94,11 +94,14 @@ def search_itunes(name: str, country: str = "US", limit: int = 5) -> list[ShowCa
     return parse_itunes_results(payload)
 
 
-def extract_episode_number(title: str) -> int | None:
+def extract_episode_number(title: str, loose: bool = True) -> int | None:
+    """Episode number from a title: "פרק 12" / "Episode 12". `loose` also accepts any bare number."""
     for pattern in (r"(?:episode|ep)\.?\s*#?\s*(\d+)", r"פרק\s*#?\s*(\d+)"):
         match = re.search(pattern, title, flags=re.IGNORECASE)
         if match:
             return int(match.group(1))
+    if not loose:
+        return None
     fallback = re.search(r"\b(\d{1,4})\b", title)
     return int(fallback.group(1)) if fallback else None
 
@@ -131,10 +134,10 @@ def parse_feed(xml_bytes: bytes) -> tuple[dict[str, str], list[Episode]]:
         title = (item.findtext("title") or "").strip()
         enclosure = item.find("enclosure")
         transcript = item.find("podcast:transcript", NS)
-        number = (item.findtext("itunes:episode", namespaces=NS) or "").strip()
-        if not number:
-            found = extract_episode_number(title)
-            number = str(found) if found is not None else ""
+        # The title decides the number (it is what listeners see); the feed's itunes:episode tag
+        # is only a fallback, and a stray digit in a title is never taken for a number.
+        found = extract_episode_number(title, loose=False)
+        number = str(found) if found is not None else (item.findtext("itunes:episode", namespaces=NS) or "").strip()
         raw_items.append(
             (
                 _iso_date(item.findtext("pubDate") or ""),
@@ -154,9 +157,8 @@ def parse_feed(xml_bytes: bytes) -> tuple[dict[str, str], list[Episode]]:
     # Feeds are normally newest-first; sort by date, keep feed order (reversed) for ties.
     raw_items.sort(key=lambda t: (t[0], -t[1]))
     episodes = [item for _, _, item in raw_items]
-    for index, episode in enumerate(episodes, start=1):
-        episode.id = index
-    return info, episodes
+    csvstore.assign_ids(episodes)  # id = episode number from the title
+    return info, sorted(episodes, key=lambda e: e.id)
 
 
 # --- Spotify linking -------------------------------------------------------------------
