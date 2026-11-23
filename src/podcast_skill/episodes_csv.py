@@ -4,6 +4,8 @@ import csv
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 
+from podcast_skill.fileio import atomic_open
+
 PENDING = "pending"
 DONE = "done"
 UNAVAILABLE = "unavailable"
@@ -35,14 +37,14 @@ def write_episodes(path: Path, episodes: list[Episode]) -> None:
     """Write one row per id from 1 to the highest id, so row N (after the header) is episode N.
 
     Ids with no episode (a number the show skipped) get an empty row holding only the id.
+    The file is replaced atomically: a crash mid-write never leaves a truncated CSV.
     """
     by_id: dict[int, Episode] = {}
     for episode in episodes:
         if episode.id in by_id:
             raise ValueError(f"Two episodes share id {episode.id}: {by_id[episode.id].title!r} and {episode.title!r}")
         by_id[episode.id] = episode
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
+    with atomic_open(path, "w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=FIELDNAMES)
         writer.writeheader()
         for episode_id in range(1, max(by_id, default=0) + 1):

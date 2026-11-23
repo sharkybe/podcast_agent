@@ -2,6 +2,10 @@
 
 Each episode ends up `done` (transcript saved) or `unavailable` (no provider had a
 transcript). Unexpected errors mark it `failed`, which is retried on the next run.
+
+Resumable: the CSV is saved after every episode and only `pending`/`failed` episodes are
+picked up, so a re-run after a crash or Ctrl-C never redoes a `done` episode. Transcripts
+and the CSV are written atomically, so an interrupted episode leaves no partial file.
 """
 from __future__ import annotations
 
@@ -10,6 +14,7 @@ from typing import Any, Sequence
 from podcast_skill import episodes_csv as csvstore
 from podcast_skill.config import section
 from podcast_skill.episodes_csv import Episode
+from podcast_skill.fileio import atomic_write_text
 from podcast_skill.paths import ShowPaths
 from podcast_skill.providers import TranscriptProvider
 
@@ -100,7 +105,7 @@ def transcribe(
 
             if lines:
                 out_file = paths.transcript_file(episode.id)
-                out_file.write_text("\n".join(lines), encoding="utf-8")
+                atomic_write_text(out_file, "\n".join(lines))  # never a partial file
                 episode.transcript_path = str(out_file.relative_to(paths.root))
                 episode.status = csvstore.DONE
                 print(f"  saved {len(lines)} lines via {source}")

@@ -93,3 +93,12 @@ def test_ivrit_is_only_tried_when_spotify_has_nothing(config):
 def test_build_providers_knows_ivrit(config):
     providers = t.build_providers(config, names=["ivrit"])
     assert [p.name for p in providers] == ["ivrit"]
+
+
+def test_progress_lines_every_few_minutes(capsys):
+    from podcast_skill.providers.ivrit import with_progress
+
+    segments = [seg(s, "x") for s in (0, 100, 310, 400, 650)]
+    assert list(with_progress(segments, total=900, every=300)) == segments
+    out = capsys.readouterr().out.splitlines()
+    assert out == ["  ... 5:10 / 15:00", "  ... 10:50 / 15:00"]
