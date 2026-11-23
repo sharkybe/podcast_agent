@@ -8,3 +8,6 @@ python-bidi>=0.4.2,<0.5
 openai>=1.44.0
 numpy>=1.26.0
 tiktoken>=0.7.0
+
+# free answer path (ask): Gemini API
+google-genai>=1.0.0
