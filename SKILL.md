@@ -1,6 +1,6 @@
 ---
 name: podcast-skill
-description: Build a searchable knowledge base from a podcast. Given a podcast name or Spotify link, list all its episodes from the RSS feed and download the transcripts from Spotify, then embed them for semantic search. Use when the user wants to collect, transcribe, index or search a podcast's episodes, or asks a question about what is said in the podcast (for example "in which episode do they talk about parenthood?").
+description: Build a searchable knowledge base from a podcast. Given a podcast name or Spotify link, list all its episodes from the RSS feed and download the transcripts from Spotify, then embed them for semantic search and answer questions or write an HTML search report. Use when the user wants to collect, transcribe, index or search a podcast's episodes, or asks a question about what is said in the podcast (for example "in which episode do they talk about parenthood?").
 ---
 
 # Podcast skill
@@ -76,6 +76,16 @@ There is no separate answering program: you (Claude) are the generator. When the
    - transcripts are automatic, so names and terms may be misspelled;
    - there are no speaker labels, so never say which host said something;
    - never present general knowledge as something the podcast said. If you add outside context, mark it clearly.
+
+## Step 5 - HTML search report
+
+`report ["<question>" ...] [--file QUESTIONS.txt] [--answers ANSWERS.txt] [--top N] [--out PATH] [--show SLUG] [--model M]`
+
+- Runs each question as a search and writes one HTML page: a section per question with a table of the `--top` (default 5) best passages, not grouped by episode, each with its score (cosine similarity, with a bar scaled to the best score on the page), episode id, title, date and `[m:ss]` start time. Use it to judge retrieval quality by eye, or to give the user a page they can open.
+- Questions come as arguments, from `--file` (one per line, blank lines ignored), or both.
+- Written to `artifacts/<show>/reports/search-report-<YYYYMMDD-HHMMSS>.html` unless `--out` is given; the path is printed as `Report written: <path>`.
+- `--answers FILE` adds an answer box above each question's table: one answer per question, in the same order, separated by lines containing only `===`. Markup is minimal: blank-line separated paragraphs, `- ` bullets and `**bold**` (everything else is escaped). The box is labelled (in Hebrew) as written from the passages, not quoted from the podcast. To produce one, first answer each question as in step 4, then write the answers file and run `report` with it.
+- The page is right-to-left (`dir="rtl"`, Hebrew) and follows the system light/dark theme. Needs the same index and OpenAI key as `search`.
 
 ## Tests
 `.venv/bin/python -m pytest` (offline; network and browser are faked).
