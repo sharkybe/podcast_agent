@@ -14,13 +14,15 @@ import shutil
 import tempfile
 import urllib.request
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Iterator
 
 from podcast_skill.config import section
 from podcast_skill.episodes_csv import Episode
+from podcast_skill.fileio import atomic_open
 
 DEFAULT_MODEL = "ivrit-ai/whisper-large-v3-turbo-ct2"
 TURN_SECONDS = 30  # no speaker labels: start a new `[m:ss]` block about every 30 s so chunking has anchors
+PROGRESS_SECONDS = 300  # print a progress line every 5 minutes of audio
 USER_AGENT = "podcast_skill/0.1 (+local transcription)"
 
 
@@ -51,9 +53,21 @@ def segments_to_lines(segments: Iterable[Any], turn_seconds: float = TURN_SECOND
     return lines
 
 
+def with_progress(segments: Iterable[Any], total: float | None, every: float = PROGRESS_SECONDS) -> Iterator[Any]:
+    """Pass segments through, printing how far into the audio we are every `every` seconds of audio."""
+    next_report = every
+    for segment in segments:
+        if segment.start >= next_report:
+            of = f" / {format_timestamp(total)}" if total else ""
+            print(f"  ... {format_timestamp(segment.start)}{of}", flush=True)
+            next_report = segment.start + every
+        yield segment
+
+
 def download_audio(url: str, target: Path) -> None:
+    """Download to a temporary file and rename it, so an interrupted download leaves no partial MP3."""
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=60) as response, target.open("wb") as handle:
+    with urllib.request.urlopen(request, timeout=60) as response, atomic_open(target, "wb") as handle:
         shutil.copyfileobj(response, handle)
 
 
@@ -120,11 +134,12 @@ class IvritTranscriptProvider:
     def _transcribe(self, audio_file: Path) -> list[str] | None:
         model = self._load_model()
         print("  transcribing (this takes a while)...")
-        segments, _info = model.transcribe(
+        segments, info = model.transcribe(
             str(audio_file),
             language=self.language,
             beam_size=self.beam_size,
             vad_filter=True,  # skips silence/music: faster and fewer hallucinated lines
         )
-        lines = segments_to_lines(segments)  # `segments` is lazy: this is where the work happens
+        total = getattr(info, "duration", None)
+        lines = segments_to_lines(with_progress(segments, total))  # `segments` is lazy: the work happens here
         return lines or None

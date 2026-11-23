@@ -140,3 +140,42 @@ def test_format_transcript_rows_adds_timestamp_to_first_line_of_each_turn():
         "[1:07:30] late turn",
     ]
     assert format_transcript_rows(["plain", "text"]) == ["plain", "text"]  # no headers: no timestamps
+
+
+def test_interrupted_run_keeps_finished_episodes_and_resumes(config, show):
+    class Interrupting(FakeProvider):
+        def fetch(self, episode):
+            if episode.id == 2:
+                raise KeyboardInterrupt  # Ctrl-C / abort in the middle of episode 2
+            return super().fetch(episode)
+
+    with pytest.raises(KeyboardInterrupt):
+        t.transcribe(config, show, providers=[Interrupting({1: ["one"]})])
+    by_id = {e.id: e for e in csvstore.read_episodes(show.episodes_csv)}
+    assert by_id[1].status == "done" and by_id[2].status == "pending"
+    assert not show.transcript_file(2).exists()
+
+    resumed = FakeProvider({2: ["two"], 3: ["three"], 4: ["four"]})
+    t.transcribe(config, show, providers=[resumed])
+    assert resumed.calls == [2, 3, 4]  # episode 1 is not redone
+    assert show.transcript_file(1).read_text(encoding="utf-8") == "one"
+
+
+def test_crash_while_writing_leaves_no_partial_files(config, show, monkeypatch):
+    from podcast_skill import fileio
+
+    t.transcribe(config, show, providers=[FakeProvider({1: ["one"]})], limit=1)
+    before = show.episodes_csv.read_bytes()
+
+    def boom(*args, **kwargs):
+        raise OSError("disk died")
+
+    monkeypatch.setattr(fileio.os, "replace", boom)
+    with pytest.raises(OSError):
+        csvstore.write_episodes(show.episodes_csv, [Episode(id=1, title="changed")])
+    with pytest.raises(OSError):
+        fileio.atomic_write_text(show.transcript_file(2), "half")
+    assert show.episodes_csv.read_bytes() == before  # old CSV intact
+    assert not show.transcript_file(2).exists()
+    leftovers = [p.name for p in show.root.rglob("*.part")]
+    assert leftovers == []
