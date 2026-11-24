@@ -124,3 +124,14 @@ def test_render_page_escapes_and_shows_references(config, indexed):
     assert "&lt;b&gt;food&lt;/b&gt;" in page
     assert "#1 Episode 1" in page
     assert "food food food" not in page
+
+
+def test_follow_up_after_a_failed_answer_keeps_the_topic(config, indexed):
+    paths, embedder = indexed
+    asker = Asker(config, paths, embedder=embedder, llm=FakeLLM(fail={"answer"}))
+    first = asker.ask("what about food?")
+    assert first.fallback
+    llm = FakeLLM()
+    asker.llm = llm
+    asker.ask("and for kids?", Turn.after(first))
+    assert "Previous question: what about food?" in llm.prompts[0][1]

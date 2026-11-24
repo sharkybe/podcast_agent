@@ -121,6 +121,12 @@ class Turn:
     question: str
     answer: str
 
+    @classmethod
+    def after(cls, result: "AskResult") -> "Turn":
+        """The exchange a follow-up builds on. Without a written answer the follow-up still gets
+        the question, so it keeps the topic."""
+        return cls(result.standalone_question, result.answer or "(no answer was given)")
+
 
 def _settings(config: dict[str, Any]) -> dict[str, Any]:
     cfg = section(config, "ask")

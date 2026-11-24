@@ -12,7 +12,8 @@ from typing import Any, Optional, Protocol
 
 from podcast_skill.config import section
 
-DEFAULT_MODEL = "gemini-3.8-flash"
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
+DEFAULT_TIMEOUT_SECONDS = 60
 DEFAULT_API_KEY_ENV = "GEMINI_API_KEY"
 
 
@@ -33,9 +34,12 @@ class GeminiLLM:
     """Gemini API through the official `google-genai` SDK (free tier works with a key from AI Studio)."""
 
     def __init__(self, model: str = DEFAULT_MODEL, api_key_env: str = DEFAULT_API_KEY_ENV,
-                 temperature: float = 0.2, client: Any = None):
+                 temperature: float = 0.2, timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
+                 retries: int = 2, client: Any = None):
         self.model = model
         self.temperature = temperature
+        self.timeout_seconds = timeout_seconds
+        self.retries = retries
         self._api_key_env = api_key_env
         self._client = client
 
@@ -48,8 +52,15 @@ class GeminiLLM:
                     f"https://aistudio.google.com/apikey and put {self._api_key_env}=... in .env"
                 )
             from google import genai
+            from google.genai import types
 
-            self._client = genai.Client(api_key=api_key)
+            # A timeout so a stuck call becomes an LLMError (and the episode-list fallback) instead
+            # of hanging; a couple of retries for "high demand" (503) and rate limits (429).
+            self._client = genai.Client(api_key=api_key, http_options=types.HttpOptions(
+                timeout=int(self.timeout_seconds * 1000),
+                retry_options=types.HttpRetryOptions(attempts=self.retries + 1, initial_delay=1.0, max_delay=8.0,
+                                                     http_status_codes=[429, 500, 502, 503, 504]),
+            ))
         return self._client
 
     def generate(self, system: str, prompt: str, *, json_output: bool = False,
@@ -97,4 +108,6 @@ def build_llm(config: dict[str, Any], model: Optional[str] = None) -> LLM:
         model=model or cfg.get("llm_model") or DEFAULT_MODEL,
         api_key_env=cfg.get("llm_api_key_env") or DEFAULT_API_KEY_ENV,
         temperature=float(cfg.get("temperature", 0.2)),
+        timeout_seconds=float(cfg.get("timeout_seconds") or DEFAULT_TIMEOUT_SECONDS),
+        retries=int(cfg.get("retries", 2)),
     )

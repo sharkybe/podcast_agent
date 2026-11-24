@@ -77,7 +77,7 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("--out", help="Output .html path (implies --html)")
     a.add_argument("--json", action="store_true", help="Print the results as JSON")
     a.add_argument("--show", help="Show slug under artifacts/ (optional if only one)")
-    a.add_argument("--llm-model", help="LLM model, overrides ask.llm_model (e.g. gemini-3.5-flash-lite)")
+    a.add_argument("--llm-model", help="LLM model, overrides ask.llm_model (e.g. gemini-3.8-flash)")
 
     p = sub.add_parser("passage", help="Read part of one transcript (more context around a search hit)")
     p.add_argument("episode", type=int, help="Episode id")
@@ -193,8 +193,7 @@ def main(argv: list[str] | None = None) -> int:
             for question in [args.question, *args.follow_up]:
                 result = asker.ask(question, history)
                 results.append(result)
-                if result.answer:
-                    history = ask_step.Turn(result.standalone_question, result.answer)
+                history = ask_step.Turn.after(result)
         except (FileNotFoundError, RuntimeError, ValueError) as exc:
             raise SystemExit(f"ERROR: {exc}")
         if args.json:
