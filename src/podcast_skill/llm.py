@@ -12,7 +12,7 @@ from typing import Any, Optional, Protocol
 
 from podcast_skill.config import section
 
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "gemini-3.8-flash"
 DEFAULT_API_KEY_ENV = "GEMINI_API_KEY"
 
 

@@ -77,7 +77,7 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("--out", help="Output .html path (implies --html)")
     a.add_argument("--json", action="store_true", help="Print the results as JSON")
     a.add_argument("--show", help="Show slug under artifacts/ (optional if only one)")
-    a.add_argument("--llm-model", help="LLM model, overrides ask.llm_model (e.g. gemini-2.5-flash-lite)")
+    a.add_argument("--llm-model", help="LLM model, overrides ask.llm_model (e.g. gemini-3.5-flash-lite)")
 
     p = sub.add_parser("passage", help="Read part of one transcript (more context around a search hit)")
     p.add_argument("episode", type=int, help="Episode id")

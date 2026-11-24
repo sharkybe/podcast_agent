@@ -32,7 +32,7 @@ index:                              # step 3 (needs the OpenAI key in the enviro
 
 ask:                                # free answer path (`ask`), no Claude needed; embeddings use the index settings above
   llm_provider: gemini
-  llm_model: gemini-2.5-flash       # gemini-2.5-flash-lite: faster, higher free-tier limits
+  llm_model: gemini-3.8-flash       # gemini-3.5-flash-lite: faster, higher free-tier limits (2.5 models are closed to new keys)
   llm_api_key_env: GEMINI_API_KEY   # free key from https://aistudio.google.com/apikey, in .env (gitignored)
   temperature: 0.2
   queries: 3                        # Hebrew search queries written from the question
@@ -41,7 +41,7 @@ ask:                                # free answer path (`ask`), no Claude needed
   neighbours: true                  # send each passage together with the chunk after it
   max_context_chars: 24000          # cap on passage text sent to the model (~8k tokens)
   fallback_episodes: 5              # episodes listed when the model is unavailable
-  expand_thinking_budget: null      # e.g. 0 to turn off thinking for the query step (Gemini 2.5)
+  expand_thinking_budget: null      # token budget for thinking in the query step (null = model default)
   answer_max_tokens: 4096           # includes Gemini's thinking tokens
 
 display:
