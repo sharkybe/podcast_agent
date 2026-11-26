@@ -135,3 +135,13 @@ def test_follow_up_after_a_failed_answer_keeps_the_topic(config, indexed):
     asker.llm = llm
     asker.ask("and for kids?", Turn.after(first))
     assert "Previous question: what about food?" in llm.prompts[0][1]
+
+
+def test_build_llm_notes_a_model_outside_free_models(capsys):
+    from podcast_skill.llm import build_llm
+
+    config = {"ask": {"llm_model": "gemini-3.5-flash-lite", "free_models": ["gemini-3.5-flash-lite"]}}
+    assert build_llm(config).model == "gemini-3.5-flash-lite"
+    assert capsys.readouterr().err == ""
+    assert build_llm(config, "gemini-4-argon").model == "gemini-4-argon"
+    assert "not in ask.free_models" in capsys.readouterr().err

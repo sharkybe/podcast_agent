@@ -104,8 +104,14 @@ def build_llm(config: dict[str, Any], model: Optional[str] = None) -> LLM:
     provider = (cfg.get("llm_provider") or "gemini").lower()
     if provider != "gemini":
         raise RuntimeError(f"Unknown ask.llm_provider {provider!r}; only 'gemini' is implemented")
+    model = model or cfg.get("llm_model") or DEFAULT_MODEL
+    free_models = cfg.get("free_models") or []
+    if free_models and model not in free_models:
+        import sys
+
+        print(f"Note: {model} is not in ask.free_models; it may need a paid Gemini key.", file=sys.stderr)
     return GeminiLLM(
-        model=model or cfg.get("llm_model") or DEFAULT_MODEL,
+        model=model,
         api_key_env=cfg.get("llm_api_key_env") or DEFAULT_API_KEY_ENV,
         temperature=float(cfg.get("temperature", 0.2)),
         timeout_seconds=float(cfg.get("timeout_seconds") or DEFAULT_TIMEOUT_SECONDS),
