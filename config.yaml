@@ -48,9 +48,9 @@ ask:                                # free answer path (`ask`), no Claude needed
   retries: 2                        # extra tries on 429/5xx ("high demand")
   queries: 3                        # Hebrew search queries written from the question
   top_per_query: 20                 # passages retrieved per query, then merged
-  context_chunks: 10                # best merged passages sent to the model
+  context_chunks: 15                # best merged passages sent to the model
   neighbours: true                  # send each passage together with the chunk after it
-  max_context_chars: 24000          # cap on passage text sent to the model (~8k tokens)
+  max_context_chars: 36000          # cap on passage text sent to the model (~12k tokens)
   fallback_episodes: 5              # episodes listed when the model is unavailable
   expand_thinking_budget: null      # token budget for thinking in the query step (null = model default)
   answer_max_tokens: 4096           # includes Gemini's thinking tokens
