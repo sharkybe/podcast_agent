@@ -1,0 +1,40 @@
+# Render Blueprint for the hosted answer API (build plan phase 3). Free web service + free Postgres.
+# Secrets are not in this file: Render asks for every `sync: false` value when the Blueprint is created.
+# Step by step: docs/hosting.md
+services:
+  - type: web
+    name: podcast-answers
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: pip install -r requirements-server.txt && scripts/fetch_data.sh
+    startCommand: uvicorn --factory podcast_skill.server.app:create_app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.1
+      - key: PYTHONPATH
+        value: src
+      - key: PODCAST_DATA_DIR
+        value: data
+      - key: OPEN_AI_API_KEY          # embeddings of the questions (name set by index.api_key_env)
+        sync: false
+      - key: GEMINI_API_KEY           # free-tier key from Google AI Studio
+        sync: false
+      - key: DATA_REPO                # owner/name of the private data repo
+        sync: false
+      - key: DATA_REPO_TOKEN          # read-only token for that repo
+        sync: false
+      - key: IP_HASH_SALT             # IPs are stored only as salted hashes
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: podcast-answers-db
+          property: connectionString
+
+databases:
+  - name: podcast-answers-db
+    plan: free                        # expires after 30 days; the app recreates its tables on startup
+    region: frankfurt
+    postgresMajorVersion: "16"

@@ -257,19 +257,28 @@ class Asker:
     """Holds the index, embedder and LLM for one show, so several questions reuse them."""
 
     def __init__(self, config: dict[str, Any], paths: ShowPaths,
-                 embedder: Optional[Embedder] = None, llm: Optional[LLM] = None):
+                 embedder: Optional[Embedder] = None, llm: Optional[LLM] = None,
+                 index_file: Optional[Path] = None):
         self.settings = _settings(config)
         self.embedder = embedder or build_embedder(config)
         self.llm = llm or build_llm(config)
-        self.index = VectorIndex(paths.index_file(self.embedder.model, self.embedder.dimensions))
+        self.index = VectorIndex(index_file or paths.index_file(self.embedder.model, self.embedder.dimensions))
         self.episodes = {e.id: e for e in csvstore.read_episodes(paths.episodes_csv)}
         self.coverage = coverage_line(self.index, self.episodes)
 
-    def ask(self, question: str, history: Optional[Turn] = None) -> AskResult:
+    def ask(self, question: str, history: Optional[Turn] = None, use_llm: bool = True) -> AskResult:
+        """`use_llm=False` skips both LLM calls and returns the episode list only (the hosted
+        service does this once its daily Gemini budget is spent)."""
         question = question.strip()
         if not question:
             raise ValueError("Question cannot be empty")
         s = self.settings
+
+        if not use_llm:
+            vectors = self.embedder.embed([question])
+            hits = self.index.search(vectors[0], int(s["top_per_query"]))
+            result = AskResult(question, question, [], None, coverage=self.coverage)
+            return self._fallback(result, hits, "The daily answer budget is used up")
 
         # 1. expand (on failure, search with the question alone and still try to answer)
         try:

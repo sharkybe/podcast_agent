@@ -35,6 +35,12 @@ class ShowPaths:
         self.index_dir = self.root / "index"  # one SQLite file per embedding model
         self.reports_dir = self.root / "reports"   # HTML search reports
 
+    @classmethod
+    def at(cls, root: Path) -> "ShowPaths":
+        """Paths for a show folder anywhere on disk (the hosted service's data folder)."""
+        root = Path(root).resolve()
+        return cls({"paths": {"artifacts_dir": str(root.parent)}}, root.name)
+
     def transcript_file(self, episode_id: int) -> Path:
         return self.transcripts_dir / f"{episode_id:03d}.txt"
 

@@ -55,6 +55,20 @@ ask:                                # free answer path (`ask`), no Claude needed
   expand_thinking_budget: null      # token budget for thinking in the query step (null = model default)
   answer_max_tokens: 4096           # includes Gemini's thinking tokens
 
+server:                             # hosted answer API (`serve`, Render): limits reset at midnight Israel time
+  data_dir: null                    # show folder (episodes.csv, show.json, index/); env PODCAST_DATA_DIR wins; null = the only show in artifacts/
+  index_file: null                  # file in <data_dir>/index/; null = the smallest one (the compact copy)
+  questions_per_day: 10             # per user (random id in a cookie)
+  follow_ups_per_question: 1
+  questions_per_ip_per_day: 30      # so clearing cookies doesn't give unlimited questions
+  answers_per_day: 300              # Gemini answers for the whole service; past it, episode lists only
+  max_question_chars: 300
+  timezone: Asia/Jerusalem
+  count_cached: true                # a repeated (cached) question still counts for the user, but costs no Gemini call
+  trust_proxy: true                 # client IP from X-Forwarded-For (set by Render)
+  cookie_name: pa_uid
+  keep_days: 3                      # counters and follow-up history kept this long
+
 display:
   fix_rtl: true                     # reorder Hebrew for terminals without right-to-left support (VS Code); terminal only, never JSON/files
 

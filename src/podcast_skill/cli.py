@@ -85,6 +85,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--to", dest="t_to", help="End time (default: start + 3 minutes)")
     p.add_argument("--show", help="Show slug under artifacts/ (optional if only one)")
 
+    sv = sub.add_parser("serve", help="Run the hosted answer API locally (what Render runs; counters in memory)")
+    sv.add_argument("--host", default="127.0.0.1")
+    sv.add_argument("--port", type=int, default=8000)
+    sv.add_argument("--data-dir", help="Show folder with episodes.csv and index/ (default: the only show under artifacts/)")
+
     st = sub.add_parser("status", help="How many episodes are transcribed and indexed")
     st.add_argument("--show", help="Show slug under artifacts/ (optional if only one)")
     return parser
@@ -216,6 +221,18 @@ def main(argv: list[str] | None = None) -> int:
             ))
         except (FileNotFoundError, ValueError) as exc:
             raise SystemExit(f"ERROR: {exc}")
+        return 0
+
+    if args.command == "serve":
+        import os
+
+        try:
+            import uvicorn
+        except ImportError:
+            raise SystemExit("ERROR: the server needs: pip install -r requirements-server.txt")
+        if args.data_dir:
+            os.environ["PODCAST_DATA_DIR"] = args.data_dir
+        uvicorn.run("podcast_skill.server.app:create_app", factory=True, host=args.host, port=args.port)
         return 0
 
     if args.command == "status":

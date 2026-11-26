@@ -1,0 +1,9 @@
+# Hosted answer API (`serve`, Render). Only what the server needs: no Playwright, no bidi.
+PyYAML>=6.0.2
+numpy>=1.26.0
+openai>=1.44.0
+google-genai>=1.0.0
+fastapi>=0.115.0
+uvicorn>=0.30.0
+psycopg[binary]>=3.2.0
+tzdata>=2024.1                      # Israel time zone even where the system has no tz database
