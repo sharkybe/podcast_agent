@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} · שאלות ותשובות</title>
+<meta name="description" content="שאלו שאלה על הפודקאסט {{TITLE}} וקבלו תשובה עם הפניות לפרקים.">
+<style>
+:root { --bg:#fff; --fg:#1a1a1a; --muted:#666; --line:#ddd; --card:#f5f6f8; --accent:#3b6fd4;
+        --accent-fg:#fff; --warn-bg:#fff6e0; --warn-fg:#6b4d00; --err-bg:#fde8e8; --err-fg:#8a1c1c; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#16171a; --fg:#e8e8ea; --muted:#9a9aa2; --line:#33353b; --card:#1f2024; --accent:#6c97f0;
+          --accent-fg:#0d1117; --warn-bg:#3a3014; --warn-fg:#f3d58a; --err-bg:#3b1d1d; --err-fg:#f5b5b5; }
+}
+* { box-sizing:border-box; }
+body { background:var(--bg); color:var(--fg); font:16px/1.6 system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+       max-width:760px; margin:0 auto; padding:28px 16px 64px; }
+h1 { font-size:1.5rem; margin:0 0 4px; }
+.sub { color:var(--muted); margin:0 0 24px; }
+form { display:flex; flex-direction:column; gap:8px; }
+textarea { width:100%; min-height:5.5em; resize:vertical; font:inherit; color:inherit; background:var(--bg);
+           border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+textarea:focus { outline:2px solid var(--accent); outline-offset:1px; border-color:transparent; }
+.row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+button { font:inherit; font-weight:600; background:var(--accent); color:var(--accent-fg); border:0;
+         border-radius:10px; padding:9px 20px; cursor:pointer; }
+button:disabled { opacity:.5; cursor:default; }
+.hint { color:var(--muted); font-size:.88rem; }
+.count.over { color:var(--err-fg); }
+.left { margin-inline-start:auto; color:var(--muted); font-size:.9rem; }
+.notice { padding:10px 14px; border-radius:8px; margin:12px 0 0; font-size:.95rem; }
+.notice.warn { background:var(--warn-bg); color:var(--warn-fg); }
+.notice.err { background:var(--err-bg); color:var(--err-fg); }
+.thread { margin:28px 0 0; padding-top:20px; border-top:1px solid var(--line); }
+.q { font-weight:600; font-size:1.08rem; margin:0 0 10px; }
+.q.follow { margin-top:22px; }
+.understood { color:var(--muted); font-size:.85rem; margin:-6px 0 10px; }
+.answer { padding:12px 16px; border-inline-start:4px solid var(--accent); background:var(--card); border-radius:6px; }
+.answer p { margin:.45em 0; }
+.answer ul { margin:.45em 0; padding-inline-start:1.3em; }
+.answer li { margin:.35em 0; }
+.cite { color:var(--accent); text-decoration:none; font-size:.85em; white-space:nowrap; }
+.refs-title { color:var(--muted); font-size:.85rem; font-weight:600; margin:14px 0 4px; }
+ol.refs, ul.refs { margin:0; padding-inline-start:1.4em; }
+.refs li { margin:.35em 0; }
+.refs li:target { background:var(--warn-bg); border-radius:4px; }
+.refs a { color:var(--accent); }
+.refs .when { color:var(--muted); font-size:.9rem; }
+.follow-form { margin-top:16px; }
+.follow-form textarea { min-height:3.2em; }
+.spinner { display:inline-block; width:1em; height:1em; border:2px solid var(--line); border-top-color:var(--accent);
+           border-radius:50%; animation:spin .8s linear infinite; vertical-align:-.15em; margin-inline-end:6px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+footer { margin-top:48px; padding-top:16px; border-top:1px solid var(--line); color:var(--muted); font-size:.85rem; }
+footer p { margin:.5em 0; }
+footer a { color:var(--accent); }
+@media (max-width:520px) { body { font-size:15px; padding-top:20px; } .left { margin-inline-start:0; width:100%; } }
+</style>
+</head>
+<body>
+<h1>{{TITLE}}</h1>
+<p class="sub">שאלו על כל נושא שעלה בפודקאסט, ותקבלו תשובה קצרה עם הפניות לפרקים ולרגע שבו מדברים על זה.</p>
+
+<form id="ask-form" autocomplete="off">
+  <label for="question" class="hint">השאלה שלכם</label>
+  <textarea id="question" name="question" maxlength="{{MAX_CHARS}}" required
+            placeholder="למשל: באילו פרקים מדברים על שינה של תינוקות?"></textarea>
+  <div class="row">
+    <button type="submit" id="ask-btn">שאלו</button>
+    <span class="hint count" id="count">0/{{MAX_CHARS}}</span>
+    <span class="left" id="left"></span>
+  </div>
+  <div id="ask-status" role="status" aria-live="polite"></div>
+</form>
+
+<div id="threads"></div>
+
+<footer>
+  <p>התשובות נכתבות אוטומטית על ידי Gemini מתוך תמלולים אוטומטיים של הפרקים, ולכן עלולות להיות בהן טעויות. כדאי לבדוק בפרק עצמו.</p>
+  <p>השאלות נשלחות ל-OpenAI (לחיפוש) ול-Google (לכתיבת התשובה). בשכבה החינמית Google עשויה להשתמש בהן לשיפור המוצרים שלה, אז אל תכתבו פרטים אישיים.</p>
+  <p id="coverage">{{COVERAGE}}</p>
+  <p>יש לכם Claude Pro? אפשר להתקין את <a href="{{SKILL_URL}}" rel="noopener">הסקיל</a> ולשאול את Claude ישירות, בלי מגבלת שאלות.</p>
+</footer>
+
+<script>
+(() => {
+  "use strict";
+  const MAX = {{MAX_CHARS}};
+  const PER_DAY = {{PER_DAY}};
+  const $ = (id) => document.getElementById(id);
+  const threads = $("threads");
+  let refCounter = 0;   // unique ids for reference anchors across all answers on the page
+
+  const MESSAGES = {
+    daily_limit: "נגמרו השאלות להיום. אפשר לשאול שוב אחרי חצות.",
+    follow_up_used: "כבר שאלתם שאלת המשך על התשובה הזאת. אפשר לשאול שאלה חדשה למעלה.",
+    not_found: "השאלה הזאת כבר לא זמינה לשאלת המשך. אפשר לשאול אותה מחדש למעלה.",
+    question_too_long: `השאלה ארוכה מדי. אפשר עד ${MAX} תווים.`,
+    empty_question: "כתבו שאלה קודם.",
+    unavailable: "החיפוש לא זמין כרגע. נסו שוב בעוד רגע.",
+    network: "אין חיבור לשרת. בדקו את החיבור ונסו שוב.",
+  };
+  const FALLBACK = {
+    llm_unavailable: "אין תשובה כתובה כרגע, כי שירות התשובות עמוס. השאלה לא נספרה. אלה הפרקים שנראים הכי רלוונטיים:",
+    daily_budget: "היום כבר נכתבו כל התשובות האפשריות, אז הפעם אין תשובה כתובה. השאלה לא נספרה. אלה הפרקים שנראים הכי רלוונטיים:",
+  };
+
+  function el(tag, attrs = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === "class") node.className = v; else node.setAttribute(k, v);
+    }
+    for (const c of children) if (c != null) node.append(c);
+    return node;
+  }
+
+  function setLeft(n) {
+    if (typeof n !== "number") return;
+    $("left").textContent = `נשארו ${n} מתוך ${PER_DAY} שאלות להיום`;
+    $("ask-btn").disabled = n <= 0;
+    if (n <= 0) $("ask-status").replaceChildren(el("div", { class: "notice err" }, MESSAGES.daily_limit));
+  }
+
+  // Inline markup from the answer: **bold** and [1] / [1, 2] citation markers. Text is never parsed as HTML.
+  function inline(text, refIds) {
+    const frag = document.createDocumentFragment();
+    const re = /\*\*(.+?)\*\*|\[(\d+(?:\s*,\s*\d+)*)\]/g;
+    let last = 0, m;
+    while ((m = re.exec(text))) {
+      frag.append(text.slice(last, m.index));
+      if (m[1] !== undefined) {
+        frag.append(el("strong", {}, m[1]));
+      } else {
+        const nums = m[2].split(",").map((s) => s.trim());
+        const span = el("span", { class: "cite", dir: "ltr" }, "[");
+        nums.forEach((n, i) => {
+          if (i) span.append(", ");
+          span.append(refIds[n] ? el("a", { href: "#" + refIds[n], class: "cite" }, n) : n);
+        });
+        span.append("]");
+        frag.append(span);
+      }
+      last = re.lastIndex;
+    }
+    frag.append(text.slice(last));
+    return frag;
+  }
+
+  function renderAnswer(text, refIds) {
+    const box = el("div", { class: "answer" });
+    let list = null;
+    for (const raw of text.split("\n")) {
+      const line = raw.trim();
+      if (raw.startsWith("- ")) {
+        if (!list) { list = el("ul"); box.append(list); }
+        list.append(el("li", {}, inline(raw.slice(2).trim(), refIds)));
+      } else if (line) {
+        list = null;
+        box.append(el("p", {}, inline(line, refIds)));
+      } else {
+        list = null;
+      }
+    }
+    return box;
+  }
+
+  function renderRefs(data, refIds) {
+    const list = el(data.fallback ? "ul" : "ol", { class: "refs" });
+    for (const ref of data.references) {
+      const title = `#${ref.episode_id} ${ref.title}`;
+      const name = ref.spotify_url ? el("a", { href: ref.spotify_url, target: "_blank", rel: "noopener" }, title) : title;
+      const li = el("li", {}, name, el("span", { class: "when" }, ` · ${ref.pub_date} · בזמן ${ref.time}`));
+      if (!data.fallback) li.id = refIds[ref.number];
+      list.append(li);
+    }
+    return list;
+  }
+
+  function renderResult(data) {
+    const frag = document.createDocumentFragment();
+    if (data.standalone_question && data.standalone_question !== data.question) {
+      frag.append(el("div", { class: "understood" }, `הבנו את השאלה כך: ${data.standalone_question}`));
+    }
+    const refIds = {};
+    for (const ref of data.references || []) refIds[ref.number] = `ref-${++refCounter}`;
+    if (data.fallback) {
+      frag.append(el("div", { class: "notice warn" }, FALLBACK[data.fallback_reason] || FALLBACK.llm_unavailable));
+    } else {
+      frag.append(renderAnswer(data.answer || "", refIds));
+    }
+    if (data.references && data.references.length) {
+      if (!data.fallback) frag.append(el("div", { class: "refs-title" }, "מקורות"));
+      frag.append(renderRefs(data, refIds));
+    }
+    return frag;
+  }
+
+  // Render's free plan sleeps when idle; the first request can take up to a minute.
+  function waiting(statusBox) {
+    statusBox.replaceChildren(el("span", { class: "hint" }, el("span", { class: "spinner" }), "מחפשים בפרקים וכותבים תשובה…"));
+    const slow = setTimeout(() => {
+      statusBox.replaceChildren(el("span", { class: "hint" }, el("span", { class: "spinner" }),
+        "השרת מתעורר משינה, זה יכול לקחת עד דקה. תודה על הסבלנות…"));
+    }, 8000);
+    return () => { clearTimeout(slow); statusBox.replaceChildren(); };
+  }
+
+  async function post(url, question) {
+    let res;
+    try {
+      res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
+                               credentials: "same-origin", body: JSON.stringify({ question }) });
+    } catch (e) {
+      return { ok: false, data: { error: "network" } };
+    }
+    let data = {};
+    try { data = await res.json(); } catch (e) { data = { error: res.status === 429 ? "daily_limit" : "unavailable" }; }
+    return { ok: res.ok, data };
+  }
+
+  function errorBox(data) {
+    return el("div", { class: "notice err" }, MESSAGES[data.error] || data.message || MESSAGES.unavailable);
+  }
+
+  function followForm(thread, convId) {
+    const form = el("form", { class: "follow-form", autocomplete: "off" });
+    const box = el("textarea", { maxlength: String(MAX), required: "", "aria-label": "שאלת המשך",
+                                 placeholder: "שאלת המשך על התשובה הזאת (אפשר אחת)" });
+    const btn = el("button", { type: "submit" }, "שאלת המשך");
+    const status = el("div", { role: "status", "aria-live": "polite" });
+    form.append(box, el("div", { class: "row" }, btn), status);
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const question = box.value.trim();
+      if (!question) return;
+      btn.disabled = box.disabled = true;
+      const done = waiting(status);
+      const { ok, data } = await post(`/api/ask/${encodeURIComponent(convId)}/follow-up`, question);
+      done();
+      if (!ok) {
+        status.replaceChildren(errorBox(data));
+        if (data.error === "follow_up_used" || data.error === "not_found") form.querySelector(".row").remove();
+        else btn.disabled = box.disabled = false;
+        return;
+      }
+      setLeft(data.questions_left);
+      const block = el("div", {}, el("div", { class: "q follow" }, question), renderResult(data));
+      thread.insertBefore(block, form);
+      if (data.follow_ups_left > 0) {
+        box.value = ""; btn.disabled = box.disabled = false;
+      } else {
+        form.remove();
+      }
+    });
+    return form;
+  }
+
+  const qBox = $("question"), count = $("count");
+  qBox.addEventListener("input", () => {
+    count.textContent = `${qBox.value.length}/${MAX}`;
+    count.classList.toggle("over", qBox.value.length >= MAX);
+  });
+  qBox.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); $("ask-form").requestSubmit(); }
+  });
+
+  $("ask-form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const question = qBox.value.trim();
+    if (!question) return;
+    const btn = $("ask-btn"), status = $("ask-status");
+    btn.disabled = true;
+    const done = waiting(status);
+    const { ok, data } = await post("/api/ask", question);
+    done();
+    btn.disabled = false;
+    if (!ok) {
+      status.replaceChildren(errorBox(data));
+      if (data.error === "daily_limit") setLeft(0);
+      return;
+    }
+    setLeft(data.questions_left);
+    qBox.value = ""; count.textContent = `0/${MAX}`;
+    const thread = el("section", { class: "thread" }, el("div", { class: "q" }, question), renderResult(data));
+    if (data.follow_ups_left > 0) thread.append(followForm(thread, data.id));
+    threads.prepend(thread);
+    thread.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  fetch("/api/limits", { credentials: "same-origin" })
+    .then((r) => r.json())
+    .then((d) => { setLeft(d.questions_left); if (d.coverage) $("coverage").textContent = coverageText(d.coverage); })
+    .catch(() => {});
+
+  function coverageText(raw) {
+    const m = /(\d+) of (\d+)/.exec(raw);
+    return m ? `אפשר לחפש כרגע ב-${m[1]} מתוך ${m[2]} הפרקים.` : raw;
+  }
+  $("coverage").textContent = coverageText($("coverage").textContent);
+})();
+</script>
+</body>
+</html>

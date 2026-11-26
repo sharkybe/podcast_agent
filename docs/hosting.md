@@ -1,7 +1,28 @@
 # Hosting the answer API on Render (build plan phase 3)
 
-The `ask` pipeline behind a small HTTP API, on Render's free plan, with counters in Render's free
-Postgres. The web page is phase 4; until then `GET /` is a placeholder.
+The `ask` pipeline behind a small HTTP API and one web page, on Render's free plan, with counters in
+Render's free Postgres.
+
+## The page (phase 4)
+
+`GET /` serves `src/podcast_skill/server/static/index.html`: one right-to-left page with a light
+and dark theme and no build step or outside scripts. It has:
+
+- a question box (Enter sends, Shift+Enter is a new line) with a character counter and
+  "questions left today: 7 of 10";
+- the answer, with each `[n]` marker linking to its reference: episode, title, date, time and a
+  Spotify link. No transcript text;
+- one follow-up box under each answer, which closes once used;
+- a notice instead of an answer when Gemini is busy or the daily budget is used up, with the most
+  relevant episodes;
+- a "the server is waking up, this can take up to a minute" message when a request takes more
+  than 8 seconds (Render's free plan sleeps when idle);
+- a footer: answers are written automatically by Gemini from automatic transcripts, questions go
+  to OpenAI and Google and Google's free tier may use them, the number of searchable episodes,
+  and a link to the skill for Claude Pro users (`server.skill_url`).
+
+The show title, limits and coverage are filled in by the server. Answer text is inserted as text,
+never as HTML.
 
 ## API
 
@@ -74,7 +95,7 @@ To update the data, push to the data repo, then **Manual Deploy > Clear build ca
 
 ```
 .venv/bin/pip install -r requirements-server.txt
-PYTHONPATH=src .venv/bin/python -m podcast_skill serve            # http://127.0.0.1:8000
+PYTHONPATH=src .venv/bin/python -m podcast_skill serve            # open http://127.0.0.1:8000
 curl -s -X POST localhost:8000/api/ask -H 'content-type: application/json' -d '{"question": "באילו פרקים מדברים על אוכל?"}'
 ```
 

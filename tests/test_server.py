@@ -160,7 +160,21 @@ def test_health_and_home(setup):
     make, *_ = setup
     client = make()
     assert client.get("/health").json()["status"] == "ok"
-    assert client.get("/").status_code == 200
+    page = client.get("/")
+    assert page.status_code == 200
+    assert 'dir="rtl"' in page.text
+    assert "{{" not in page.text                      # every placeholder filled in
+    assert "const MAX = 300;" in page.text and "const PER_DAY = 3;" in page.text
+    assert "3 of 3 episodes are searchable" in page.text
+
+
+def test_home_escapes_the_show_title(config, show):  # noqa: F811
+    embedder = FakeEmbedder()
+    index_show(config, show, embedder=embedder, count_tokens=words)
+    asker = Asker(config, show, embedder=embedder, llm=FakeLLM())
+    app = create_app(config, asker=asker, store=MemoryStore(), show_title='<b>"x"</b>')
+    page = TestClient(app).get("/").text
+    assert "<b>" not in page and "&lt;b&gt;" in page
 
 
 def test_normalise_question_and_ip_key():

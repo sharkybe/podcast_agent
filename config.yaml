@@ -68,6 +68,7 @@ server:                             # hosted answer API (`serve`, Render): limit
   trust_proxy: true                 # client IP from X-Forwarded-For (set by Render)
   cookie_name: pa_uid
   keep_days: 3                      # counters and follow-up history kept this long
+  skill_url: https://github.com/sharkybe/podcast_agent#readme   # "use the skill" link for Claude Pro users
 
 display:
   fix_rtl: true                     # reorder Hebrew for terminals without right-to-left support (VS Code); terminal only, never JSON/files

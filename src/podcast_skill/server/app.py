@@ -4,7 +4,7 @@
     POST /api/ask/{id}/follow-up     {"question": "..."}  -> the one follow-up to that answer
     GET  /api/limits                 -> what is left today for this browser
     GET  /health                     -> for Render's health check
-    GET  /                           -> placeholder until the web page (phase 4)
+    GET  /                           -> the question page (phase 4, static/index.html)
 
 Limits (all per day, reset at midnight Israel time, settings in config.yaml `server:`):
 - a user (random id in a cookie) gets `questions_per_day` questions, each with
@@ -60,6 +60,7 @@ DEFAULTS: dict[str, Any] = {
     "trust_proxy": True,              # take the client IP from X-Forwarded-For (Render sets it)
     "cookie_name": "pa_uid",
     "keep_days": 3,                   # counters and follow-up history are dropped after this
+    "skill_url": "https://github.com/sharkybe/podcast_agent#readme",   # for Claude Pro users
 }
 
 NO_ANSWER = "(no answer was given)"
@@ -175,22 +176,32 @@ def _public(result: AskResult) -> dict[str, Any]:
     return data
 
 
-PLACEHOLDER_PAGE = """<!doctype html>
-<html lang="he" dir="rtl"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>{title}</title></head>
-<body style="font-family:system-ui,sans-serif;max-width:40em;margin:3em auto;padding:0 16px">
-<h1>{title}</h1>
-<p>השירות פועל. דף השאלות עוד בבנייה.</p>
-<p dir="ltr" style="text-align:left">The API is up: <code>POST /api/ask {{"question": "..."}}</code></p>
-</body></html>
-"""
+PAGE_TEMPLATE = Path(__file__).with_name("static") / "index.html"
+
+
+def render_home(show_title: str, settings: dict[str, Any], coverage: str) -> str:
+    """The question page (phase 4): one static file with a few values filled in."""
+    import html
+
+    values = {
+        "TITLE": html.escape(show_title),
+        "MAX_CHARS": str(int(settings["max_question_chars"])),
+        "PER_DAY": str(int(settings["questions_per_day"])),
+        "COVERAGE": html.escape(coverage),
+        "SKILL_URL": html.escape(str(settings["skill_url"]), quote=True),
+    }
+    page = PAGE_TEMPLATE.read_text(encoding="utf-8")
+    for key, value in values.items():
+        page = page.replace("{{" + key + "}}", value)
+    return page
 
 
 # ---------------------------------------------------------------- app
 
 
 def create_app(config: Optional[dict[str, Any]] = None, *, asker: Optional[Asker] = None,
-               store: Optional[Store] = None, now: Optional[Callable[[], dt.datetime]] = None) -> FastAPI:
+               store: Optional[Store] = None, now: Optional[Callable[[], dt.datetime]] = None,
+               show_title: Optional[str] = None) -> FastAPI:
     """Build the app. Tests pass their own asker, store and clock; uvicorn calls it with none
     (`uvicorn --factory podcast_skill.server.app:create_app`)."""
     if config is None:
@@ -200,16 +211,15 @@ def create_app(config: Optional[dict[str, Any]] = None, *, asker: Optional[Asker
     tz = ZoneInfo(s["timezone"])
     clock = now or (lambda: dt.datetime.now(tz))
 
-    show_title = "Podcast"
     if asker is None:
         data_dir = find_data_dir(config, s["data_dir"])
         db_file = find_index_file(data_dir, s["index_file"])
         paths = ShowPaths.at(data_dir)
         asker = Asker(config, paths, embedder=embedder_for_index(config, db_file), index_file=db_file)
-        if paths.show_json.exists():
+        if show_title is None and paths.show_json.exists():
             import json
 
-            show_title = json.loads(paths.show_json.read_text(encoding="utf-8")).get("title") or show_title
+            show_title = json.loads(paths.show_json.read_text(encoding="utf-8")).get("title")
         print(f"Loaded {db_file.name}: {len(asker.index.rows)} chunks; {asker.coverage}", file=sys.stderr)
     store = store or build_store(os.environ.get("DATABASE_URL"))
     salt = os.environ.get("IP_HASH_SALT") or "podcast-agent"
@@ -272,11 +282,12 @@ def create_app(config: Optional[dict[str, Any]] = None, *, asker: Optional[Asker
     def health() -> dict[str, Any]:
         return {"status": "ok", "chunks": len(asker.index.rows), "coverage": asker.coverage}
 
-    @app.get("/", response_class=HTMLResponse)
-    def home() -> str:
-        import html
+    home_page = render_home(show_title or "Podcast", s, asker.coverage)
 
-        return PLACEHOLDER_PAGE.format(title=html.escape(show_title))
+    @app.get("/", response_class=HTMLResponse)
+    def home() -> HTMLResponse:
+        return HTMLResponse(home_page, headers={"X-Content-Type-Options": "nosniff",
+                                                "Referrer-Policy": "no-referrer"})
 
     @app.get("/api/limits")
     def limits(request: Request) -> Response:
